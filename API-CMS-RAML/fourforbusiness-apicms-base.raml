@@ -1,0 +1,398 @@
+#%RAML 1.0 Library
+---
+usage: |
+  Annotations, base types, resource types and traits of
+  'four for business API CMS'.
+
+uses:
+    commons: fourforbusiness-commons-base.raml
+
+types:
+  CmsId:
+    type: string
+    pattern: ^[a-zA-Z0-9][a-zA-Z0-9\-_]{0,31}$
+  CmsFieldId:
+    type: string
+    pattern: ^[a-zA-Z0-9][a-zA-Z0-9\-_]{0,31}$
+  CmsVersion:
+    type: integer
+    format: int64
+  CmsRevision:
+    type: integer
+    format: int64
+  DescriptionText:
+    type: string
+    minLength: 1
+    maxLength: 500
+  Text:
+    type: string
+    minLength: 1
+    maxLength: 255
+  Locale:
+    type: string
+    pattern: ^[a-z]{2}(-[A-Z]{2})?$
+  Locales:
+    type: Locale[]
+    uniqueItems: true
+  PublishingStatusType:
+    enum: [DRAFT, PUBLISHED, PUBLISHED_DRAFT, UNPUBLISHED]
+  ContentType:
+    type: string
+    pattern: "^[a-zA-Z0-9!#$&.+-^_/ ;=]{1,255}$"
+  AssetFileName:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: |
+      The file name of an asset. The file name may contain
+      letters (a-z, A-Z)
+      digits (0-9)
+      special characters "_-.!()"
+      non US-ASCII characters
+  AssetFileSize:
+    type: integer
+    format: int64
+  Metadata:
+    type: object
+    properties:
+      id:
+        type: CmsId
+        (commons.sortable):
+      version:
+        type: CmsVersion
+        description: |
+          Version to be used for optimistic locking. On every update of the returned data the
+          version is incremented.
+      revision:
+        type: CmsRevision
+        description: |
+          Revision of the data. The revision may not be incremented when data is publishedCurrently.
+      createdAt:
+        type: datetime
+        (commons.sortable):
+      createdBy:
+        type: commons.Id
+        required: false
+      updatedAt:
+        type: datetime
+        (commons.sortable):
+      updatedBy:
+        type: commons.Id
+        required: false
+      firstPublishedAt:
+        type: datetime
+        required: false
+      publishingStatus:
+        type: PublishingStatusType
+      publishedRevision:
+        type: CmsRevision
+        required: false
+      publishedAt:
+        type: datetime
+        required: false
+      publishedBy:
+        type: commons.Id
+        required: false
+  Content:
+    type: object
+    properties:
+      metadata:
+        type: Metadata
+        required: false
+        description: |
+          Metadata is only returned and must not be specified as input.
+      typeId:
+        type: CmsId
+        description: |
+          The ID of the type of the content. This cannot be updated after
+          creation of the content.
+      publishingStatus:
+        type: PublishingStatusType
+        required: false
+        description: |
+          Can be used to define the publishing status of the content.
+      locale:
+        type: Locale
+        required: false
+        description: |
+          The locale in which the content is returned. This field cannot be
+          set. On authoring repository it is only returned when content has
+          been filtered with a locale. On delivery repository it is returned
+          each time since content is only returned for one locale.
+      defaultLocale:
+        type: Locale
+        required: false
+        (commons.sortable):
+        description: |
+          The default locale of the content. If this is not specified the
+          default locale of the site will be used when creating content.
+          This field is only available and returned on authoring repository.
+      availableLocales:
+        type: Locale
+        required: false
+        description: |
+          All locales in which the content is available. If this is not
+          specified the default locale of the site will be used when creating
+          content. This field is only available and returned on authoring
+          repository.
+      publishedLocales:
+        type: Locale
+        required: false
+        description: |
+          All locales that will be delivered on publishing. This may be a
+          subset of all available locales but must include at least the
+          default locale. If the field is an empty array or field is not
+          specified when creating the content, the available locales will be
+          used as delivered locales. This field is only available and returned
+          on authoring repository.
+      title:
+        type: object
+        required: false
+        description:
+          The content title extracted from the content fields. The value cannot
+          be set and is returned only on authoring repository.
+        example:
+          overview:
+            description: |
+              The returned value when overview mode has been selected and no
+              locale filter has been specified.
+            value: |
+              This is the content title of the default locale of the content.
+          other:
+            description: |
+              The returned value when overview mode has been selected and a
+              locale filter has been specified or overview has not been
+              selected.
+            value:
+              en-US: This is the American English content title.
+              es: Este es el título de contenido en español.
+              de: Dieses ist der Deutsche Inhaltstitel.
+      fields:
+        type: object
+        description: The fields as described by the referenced content type.
+        example:
+          authoring:
+            description: |
+              The example contains localized field "value1" and non-localized
+              field "value2" on authoring repository.
+            value:
+              value1:
+                en-US: This is the localized value.
+                es: Este es el valor localizado.
+              value2: This is the non-localized value.
+          delivery:
+            description: |
+              The example contains localized field "value1" and non-localized
+              field "value2" on delivery repository. The content is returned in
+              American English.
+            value:
+              value1: This is the localized value.
+              value2: This is the non-localized value.
+  AssetFile:
+    type: object
+    properties:
+      name:
+        type: AssetFileName
+        required: false
+        description: |
+          The file name of the asset. If this value is not specified when the
+          file is uploaded, the file name of the uploaded file is used.
+      contentType:
+        type: ContentType
+        required: false
+        description: |
+          The content type of the asset. If this value is not specified when
+          the file is uploaded, the content type of the uploaded file is used.
+      lastModified:
+        type: datetime
+        required: false
+        description: |
+          Returns the date and time when file has been uploaded last time.
+      size:
+        type: AssetFileSize
+        required: false
+        description: Returns the size of the file.
+      url:
+        type: string
+        required: false
+        description:
+          The HTTP/HTTPS url of the asset file that can be used to request the
+          asset file in Internet. This field cannot be set. It is returned
+          only and may not contain a protocol.
+  Asset:
+    type: object
+    properties:
+      metadata:
+        type: Metadata
+        required: false
+        description: |
+          Metadata is only returned and must not be specified as input.
+      publishingStatus:
+        type: PublishingStatusType
+        required: false
+        description: |
+          Can be used to define the publishing status of the asset.
+      locale:
+        type: Locale
+        required: false
+        description: |
+          The locale in which the asset is returned. This field cannot be
+          set. On authoring repository it is only returned when asset has
+          been filtered with a locale. On delivery repository it is returned
+          each time since asset is only returned for one locale.
+      defaultLocale:
+        type: Locale
+        required: false
+        (commons.sortable):
+        description: |
+          The default locale of the asset. If this is not specified the
+          default locale of the site will be used when creating content.
+          This field is only available and returned on authoring repository.
+      availableLocales:
+        type: Locale
+        required: false
+        description: |
+          All locales in which the asset is available. If this is not
+          specified the default locale of the site will be used when creating
+          asset. This field is only available and returned on authoring
+          repository.
+      publishedLocales:
+        type: Locale
+        required: false
+        description: |
+          All locales that will be delivered on publishing. This may be a
+          subset of all available locales but must include at least the
+          default locale. If the field is an empty array or field is not
+          specified when creating the content, the available locales will be
+          used as delivered locales. This field is only available and returned
+          on authoring repository.
+      contentType:
+        type: ContentType
+        required: false
+        description: |
+          The content type of the asset files. The content type contains only
+          the media type without parameters. This value is only returned and
+          must not be specified.
+      title:
+        type: object
+        description:
+          The required title of the asset. The value can be set as
+          non-localized string (value is a string value) or as localized value
+          (value is an object with localized string values). The string values
+          must have type "Text".
+        example:
+          overview:
+            description: |
+              The returned value when title is non-localized or overview mode
+              has been selected and no locale filter has been specified.
+            value: |
+              This is the title of the default locale of the content.
+          other:
+            description: |
+              The returned value when title is localized and overview mode has
+              been selected and a locale filter has been specified or overview
+              has not been selected.
+            value:
+              en-US: This is the American English title.
+              es: Este es el título en español.
+              de: Dieses ist der Deutsche Titel.
+      description:
+        type: object
+        required: false
+        description:
+          The optional description of the asset. The value can be set as
+          non-localized string (value is a string value) or as localized value
+          (value is an object with localized string values). The string values
+          must have type "DescriptionText".
+        example:
+          overview:
+            description: |
+              The returned value when description is non-localized or overview
+              mode has been selected and no locale filter has been specified.
+            value: |
+              This is the content title of the default locale of the content.
+          other:
+            description: |
+              The returned value when description is localized and overview
+              mode has been selected and a locale filter has been specified or
+              overview has not been selected.
+            value:
+              en-US: This is the American English description.
+              es: Este es la descripción en español.
+              de: Dieses ist die Deutsche Beschreibung.
+      file:
+        type: AssetFile
+        required: false
+        description: |
+          The metadata of the non-localized file. Either localized files or a
+          non-localized file can be specified.
+      localizedFiles:
+        type: object
+        required: false
+        description: |
+          The metadata of the localized files. The localized values must have
+          type "AssetFile". Either localized files or a non-localized file can
+          be specified. All localized files must have the same media type. The
+          optional parameters can differ.
+        example:
+          value:
+            en-US:
+              name: letter.pdf
+              contentType: application/pdf
+            de:
+              name: brief.pdf
+              contentType: application/pdf
+
+traits:
+  version-matched:
+    description: |
+      Specifies the required version number when a resource entity is updated
+      or deleted or a dependent resource entity is assigned. If the current
+      version of the resource entity does not match the specified version, an
+      error 412 (precondition failed) is returned.
+    headers:
+      If-Match-Version:
+        description: |
+          Specified the version number.
+        type: integer
+        format: int64
+        required: true
+        example: 47
+    responses:
+      412:
+        description: |
+          The specified version number does not match
+        body:
+          application/json:
+            type: commons.Error
+  metadata-filtered:
+    description: |
+      Filter request parameters for metadata.
+    queryParameters:
+      metadata.id:
+        required: false
+        type: CmsId
+      metadata.createdAt:
+        required: false
+        type: datetime
+      metadata.createdBy:
+        required: false
+        type: commons.Id
+      metadata.updatedAt:
+        required: false
+        type: datetime
+      metadata.updatedBy:
+        required: false
+        type: commons.Id
+      metadata.publishingStatus:
+        required: false
+        type: PublishingStatusType
+  cms-sorted:
+    description: |
+      Specifies the sort order of the retrieved items. The property must be
+      marked with the "sortable" annotation.
+    queryParameters:
+      sort:
+        required: false
+        pattern: "((\\+|\\-)?[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)+,)*(\\+|\\-)?[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)+"
+        example: +title,metadata.updatedBy

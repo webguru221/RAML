@@ -1,0 +1,844 @@
+#%RAML 1.0
+---
+title: |
+  four for business commons REST API for managing
+  privileges, groups and user.
+version: v1
+protocols: [ HTTPS ]
+baseUri: https://127.0.0.1/{version}
+uses:
+  base: fourforbusiness-commons-base.raml
+securedBy: [oauth_2_0]
+securitySchemes:
+  oauth_2_0:
+    type: OAuth 2.0
+    describedBy:
+      headers:
+        Authorization:
+          description: |
+            Used to send a valid OAuth 2 access token. Do not use together with
+            the "access_token" query string parameter.
+      queryParameters:
+        access_token:
+          description: |
+            Used to send a valid OAuth 2 access token. Do not use together with
+            the "Authorization" header.
+    settings:
+      authorizationUri: https://127.0.0.1/oauth2/authorize
+      accessTokenUri: https://127.0.0.1/oauth2/token
+      authorizationGrants: [ authorization_code, password ]
+documentation:
+  - title: Getting Started
+    content: |
+      Most likely we include a meaningful document later :-)
+  - title: Basics of Authentication
+    content: |
+      Describe the way to auth
+  - title: Generic reponse codes
+    content: |
+      List generic response codes
+
+mediaType: application/json
+
+types:
+  Privilege:
+    type: object
+    properties:
+      privilegeId:
+        type: base.Id
+        required: false
+      name:
+        type: string
+        minLength: 1
+        maxLength: 255
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 1024
+      description:
+        type: string
+        minLength: 1
+        maxLength: 4000
+  AssignedType:
+    enum: [ GRANTED, REVOKED ]
+  Privileges:
+    type: Privilege[]
+    uniqueItems: true
+  AssignedPrivilege:
+    type: object
+    properties:
+      assigned:
+        type: AssignedType
+        default: GRANTED
+      privilegeId:
+        type: base.Id
+  AssignedPrivileges:
+    type: AssignedPrivilege[]
+    uniqueItems: true
+  User:
+    type: object
+    properties:
+      userId:
+        description: |
+          The unique ID of the user. The value must not be set on when creating
+          the user. In this case this value will be generated automatically and
+          will be included in the response.
+        type: base.Id
+        required: false
+        (base.sortable):
+      version:
+        description: |
+          The version of the user data. This value must not be set when creating
+          the user.
+        type: base.Version
+        required: false
+      name:
+        type: string
+        minLength: 1
+        maxLength: 255
+        (base.sortable):
+      password:
+        description: |
+          The unencoded password of the user. Can be set when creating or
+          updating a user. The password is never included in responses.
+        type: string
+        minLength: 1
+        required: false
+      salutation:
+        enum: [MR, MRS, MISS, DR, PROF]
+        required: false
+      firstName:
+        type: string
+        minLength: 1
+        maxLength: 255
+        (base.sortable):
+      lastName:
+        type: string
+        minLength: 1
+        maxLength: 255
+        (base.sortable):
+      emailAddress:
+        type: string
+        minLength: 1
+        maxLength: 255
+        (base.sortable):
+      employeeId:
+        type: string
+        minLength: 1
+        maxLength: 30
+        required: false
+      externalId:
+        type: string
+        minLength: 1
+        maxLength: 255
+        required: false
+      locked:
+        type: boolean
+        (base.sortable):
+      expiry:
+        type: datetime
+        required: false
+      groups:
+        description: |
+          The groups that are assigned to the user. Assigned groups are not
+          returned by default and must be requested explicitly. Specifying this
+          property when creating or updating the user has no effect.
+        type: Groups
+        required: false
+      groupIds:
+        description: |
+          The IDs of the groups that are assigned to the user. Assigned group
+          IDs are not returne by default and must be requested explicitly.
+          Specifying this property when creating or updating the user replaces
+          the currently assigned groups with these groups.
+        type: base.Ids
+        required: false
+      privileges:
+        description: |
+          The privileges that are assigned to the user directly. Assigned
+          privileges are not returned by default and must be requested
+          explicitly. Specifying this property when creating or updating the
+          user replaces the currently assigned privileges with these privileges.
+        type: AssignedPrivileges
+        required: false
+      resultingPrivileges:
+        description: |
+          The resulting privileges that are assigned to the user directly and
+          indirectly (by assigned groups). Resulting privileges are not returned
+          by default and must be requested explicitly. Specifying this property
+          when creating or updating the user has no effect.
+        type: AssignedPrivileges
+        required: false
+      properties:
+        description: |
+          The properties that are assigned to the user. Properties are not
+          returned by default and must be requested explicitly. Specifying this
+          property when creating or updating the user replaces the currently
+          assigned properties completely with these properties.
+        type: UserProperties
+        required: false
+      loginData:
+        description:
+          The login data of the user. Specifying this property when creating or
+          updating the user has no effect.
+        type: UserLoginData
+        required: false
+  Users:
+    type: User[]
+    uniqueItems: true
+  UserProperty:
+    type: object
+    properties:
+      propertyId:
+        description: |
+          The unique ID of the property. The value must not be set on when
+          creating the property. In this case this value will be generated
+          automatically and will be included in the response.
+        type: base.Id
+        required: false
+      name:
+        type: string
+        minLength: 1
+        maxLength: 60
+      value:
+        type: string
+        maxLength: 255
+        default: nil
+  UserProperties:
+    type: UserProperty[]
+    uniqueItems: true
+  UserLoginData:
+    type: object
+    properties:
+      loginCount:
+        type: integer
+        format: int64
+      currentLoginTime:
+        type: datetime
+        required: false
+      lastLoginTime:
+        type: datetime
+        required: false
+  Group:
+    type: object
+    properties:
+      groupId:
+        description: |
+          The unique ID of the group. The value must not be set on when creating
+          the group. In this case this value will be generated automatically and
+          will be included in the response.
+        type: base.Id
+        required: false
+        (base.sortable):
+      version:
+        description: |
+          The version of the group data. This value must not be set when
+          creating the group.
+        type: base.Version
+        required: false
+      name:
+        type: string
+        minLength: 1
+        maxLength: 255
+        (base.sortable):
+      description:
+        type: string
+        minLength: 1
+        maxLength: 4000
+      builtIn:
+        type: boolean
+        default: false
+        required: false
+      parentGroup:
+        description: |
+          The optional parent group. Specifying this property when creating or
+          updating the user has no effect. Parent group is not returned by
+          default and must be requested explicitly.
+        type: Group
+        required: false
+      parentGroupId:
+        description: |
+          The ID of the optional parent group. This property can be used to
+          assign a parent group.
+        type: base.Id
+        required: false
+      childGroups:
+        description: |
+          The child groups of this group (where this group is the parent group).
+          Child groups are not returned by default and must be requested
+          explicitly. Specifying this property when creating or updating the
+          user has no effect. Child groups cannot be assigned.
+        type: Group[]
+        required: false
+      privileges:
+        description: |
+          The privileges that are assigned to the group directly. Assigned
+          privileges are not returned by default and must be requested
+          explicitly. Specifying this property when creating or updating the
+          group replaces the currently assigned privileges with these privileges.
+        type: AssignedPrivileges
+        required: false
+      resultingPrivileges:
+        description: |
+          The resulting privileges that are assigned to the group directly and
+          indirectly (by parent group). Resulting privileges are not returned
+          by default and must be requested explicitly. Specifying this property
+          when creating or updating the group has no effect.
+        type: AssignedPrivileges
+        required: false
+  Groups:
+    type: Group[]
+    uniqueItems: true
+
+/privileges:
+  displayName: Privilege Management
+  get:
+    description: Retrieves the list of privileges.
+    is: [ base.fielded, base.paged ]
+    responses:
+      200:
+        body:
+          application/json:
+            description: |
+              Type "Privileges" is returned unless fields are specified.
+/login:
+  displayName: Authenticated User
+  get:
+    description: Retrieves the currently authenticated user.
+    is: [ base.fielded ]
+    responses:
+      200:
+        body:
+          application/json:
+            description: |
+              Type "User" is returned unless fields are specified.
+/users:
+  displayName: User Management
+  type: base.collection
+  get:
+    description: Retrieves the list of users.
+    is: [ base.fielded, base.queried, base.sorted, base.paged ]
+    queryParameters:
+      id?: base.Ids
+      name?: string
+      forename?: string
+      surname?: string
+      emailAddress?: string
+      locked?: boolean
+    responses:
+      200:
+        body:
+          application/json:
+            description: Type "Users" is returned unless fields are specified.
+  post:
+    description: Creates a new user.
+    body:
+      application/json:
+        type: User
+        description: |
+          The properties "userId" and the "version" must not be specified. These
+          property values are returned.
+    responses:
+      200:
+        description: User has been created.
+        body:
+          application/json:
+            type: User
+  /{userId}:
+    uriParameters:
+      userId:
+        type: base.Id
+    get:
+      description: Retrieves the user with the specified userId.
+      is: [ base.fielded ]
+      responses:
+        200:
+          body:
+            application/json:
+              description: Type "User" is returned unless fields are specified.
+        404:
+          description: User could not be found.
+          body:
+            application/json:
+    patch:
+      description: Updates the user with the specified userId.
+      is: [ base.version-matched ]
+      body:
+        application/merge-patch+json:
+          description: Object with specific fields of type "User".
+      responses:
+        200:
+          description: User has been updated.
+          body:
+            application/json:
+              type: User
+        404:
+          description: User could not be found.
+          body:
+            application/json:
+    delete:
+      description: Deletes the user with the specified userId.
+      is: [ base.version-matched ]
+      responses:
+        204:
+          description: User has been deleted.
+        404:
+          description: User could not be found.
+          body:
+            application/json:
+    /groups:
+      description: Groups to which a user is assigned.
+      get:
+        description: Returns the groups to which a user is assigned.
+        is: [ base.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Groups" is returned unless fields are specified.
+      post:
+        description: |
+          Assigns the user to the groups with the included group IDs. Existing
+          group assignments will be replaced.
+        is: [ base.version-matched ]
+        body:
+          application/json:
+            description: The IDs of the groups to be assigned.
+            type: base.Ids
+        responses:
+          200:
+            description: |
+              User has been assigned to the groups with the specified group IDs.
+      /{groupId}:
+        uriParameters:
+          groupId:
+            type: base.Id
+        post:
+          description: Assigns the user to the group with the specified groupId.
+          is: [ base.version-matched ]
+          responses:
+            201:
+              description: |
+                User has been assigned to the group with the specified groupId.
+            409:
+              description: |
+                User has been assigned to the group with the specified groupId
+                already.
+        delete:
+          description: |
+            Removes the user from the group with the specified groupId.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: |
+                The user has been removed from the group with the specified
+                groupId.
+            404:
+              description: |
+                User has not been assigned to the group with the specified
+                groupId.
+              body:
+                application/json:
+    /privileges:
+      description: Privileges that are assigned to the user.
+      get:
+        description: |
+          Returns all privileges (already not assigned privileges) and specifies
+          the "AssignedType" in field "assigned" for each assigned privilege.
+        is: [ base.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Privileges" is returned unless fields are specified.
+                  Additionally the "AssignedType" is returned for each assigned
+                  privilege in field "assigned".
+      post:
+        description: |
+          Assigns the user to the included privileges. Existing privileges
+          assignments will be replaced.
+        is: [ base.version-matched ]
+        body:
+          application/json:
+            type: AssignedPrivileges
+        responses:
+          201:
+            description: User has been assigned to the privileges.
+      /{privilegeId}:
+        uriParameters:
+          privilegeId:
+            type: base.Id
+        get:
+          description: |
+            Returns the assigned privilege with the specified privilegeId.
+          responses:
+            200:
+              body:
+                application/json:
+                  type: AssignedPrivilege
+            404:
+              description: |
+                Privilege with the specified privilegeId has not been assigned.
+              body:
+                application/json:
+        post:
+          description: Assigns the privilege to the user.
+          is: [ base.version-matched ]
+          body:
+            application/json:
+              type: object
+              properties:
+                assigned:
+                  type: AssignedType
+                  default: GRANTED
+                  required: false
+          responses:
+            201:
+              body:
+                application/json:
+                  type: AssignedPrivilege
+            409:
+              description: |
+                User has been assigned to the privilege with the specified
+                privileged already.
+        patch:
+          description: Updates the assigned privilege of the user.
+          is: [ base.version-matched ]
+          body:
+            application/merge-patch+json:
+              type: object
+              properties:
+                assigned:
+                  type: AssignedType
+          responses:
+            200:
+              body:
+                application/json:
+                  type: AssignedPrivilege
+            404:
+              description: |
+                Privilege with the specified privilegeId has not been assigned.
+              body:
+                application/json:
+        delete:
+          description: |
+            Removes the assigned privilege with the specified privilegeId.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: |
+                The assigned privilege with the specified privilegeId has been
+                removed.
+            404:
+              description: |
+                Privilege with the specified privilegeId has not been assigned.
+              body:
+                application/json:
+    /props:
+      description: Properties that are assigned to the user.
+      get:
+        description: Returns the assigned properties of the user.
+        responses:
+          200:
+            body:
+              application/json:
+                type: UserProperties
+      post:
+        description: Assigns a new property to the user.
+        is: [ base.version-matched ]
+        body:
+          application/json:
+            type: UserProperty
+            description: |
+              The "userPropertyId" must not be specified. This is returned.
+        responses:
+          201:
+            body:
+              application/json:
+                type: UserProperty
+      /{propertyId}:
+        uriParameters:
+          propertyId:
+            type: base.Id
+        get:
+          description: Returns the user property with the specified ID.
+          responses:
+            200:
+              body:
+                application/json:
+                  type: UserProperty
+            404:
+              description: |
+                The user property ID with the specified ID could not be found.
+              body:
+                application/json:
+        patch:
+          description: Sets the value of a user property.
+          is: [ base.version-matched ]
+          body:
+            application/merge-patch+json:
+              type: object
+              properties:
+                value:
+                  type: string
+                  maxLength: 255
+          responses:
+            200:
+              body:
+                application/json:
+                  type: UserProperty
+        delete:
+          description: |
+            Deletes the user property with the specified ID from the user.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: User property has been deleted.
+            404:
+              description: |
+                The user property with the specified ID could not be found.
+              body:
+                application/json:
+/groups:
+  displayName: Group Management
+  type: base.collection
+  get:
+    description: Retrieves the list of groups.
+    is: [ base.fielded, base.queried, base.sorted, base.paged ]
+    queryParameters:
+      id?: base.Ids
+      name?: string
+    responses:
+      200:
+        body:
+          application/json:
+            description: Type "Groups" is returned unless fields are specified.
+  post:
+    description: Creates a new group.
+    body:
+      application/json:
+        type: User
+        description: |
+          The "groupId" and the "version" must not be specified. These property
+          values are returned.
+    responses:
+      201:
+        description: Group has been created.
+        body:
+          application/json:
+            type: Group
+  /{groupId}:
+    uriParameters:
+      groupId:
+        type: base.Id
+    get:
+      description: Retrieves the group with the specified groupId.
+      is: [ base.fielded ]
+      responses:
+        200:
+          body:
+            application/json:
+              description: |
+                Type "Groups" is returned unless fields are specified.
+        404:
+          description: Group could not be found.
+          body:
+            application/json:
+    patch:
+      description: Updates the group with the specified groupId.
+      is: [ base.version-matched ]
+      body:
+        application/merge-patch+json:
+          description: Object with specific fields of type "Group".
+      responses:
+        200:
+          description: Group has been updated.
+          body:
+            application/json:
+              type: Group
+        404:
+          description: Group could not be found.
+          body:
+            application/json:
+    delete:
+      description: Deletes the group with the specified groupId.
+      is: [ base.version-matched ]
+      responses:
+        204:
+          description: Group has been deleted.
+        404:
+          description: Group could not be found.
+          body:
+            application/json:
+    /parent:
+      get:
+        description: Retrieves the parent group of this group.
+        is: [ base.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Groups" is returned unless fields are specified.
+          404:
+            description: Parent of group does not exist.
+            body:
+              application/json:
+    /children:
+      get:
+        description: Retrieves the child groups of this group.
+        is: [ base.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Groups" is returned unless fields are specified.
+          404:
+            description: The group with the specified groupId does not exist.
+            body:
+              application/json:
+    /users:
+      description: Users that are assigned to this group.
+      get:
+        description: Returns the users that are assigned to this group.
+        is: [ base.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Users" is returned unless fields are specified.
+      post:
+        description: |
+          Assigns the users with the included user IDs to this group.
+          Existing user assignments of this group will be replaced.
+        is: [ base.version-matched ]
+        body:
+          application/json:
+            description: The IDs of the user to be assigned to this group.
+            type: base.Ids
+        responses:
+          201:
+            description: Users have been assigned to this group.
+      /{userId}:
+        uriParameters:
+          userId:
+            type: base.Id
+        post:
+          description: Assigns the user with the specified userId to the group.
+          is: [ base.version-matched ]
+          responses:
+            201:
+              description: User has been assigned to the group.
+            409:
+              description: |
+                User has been assigned to the group with the specified groupId
+                already.
+        delete:
+          description: Removes the user from the group.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: The user has been removed from the group.
+            404:
+              description: User has not been assigned to the group.
+              body:
+                application/json:
+    /privileges:
+      description: Privileges that are assigned to the group.
+      get:
+        description: |
+          Returns all privileges (already assigned and not assigned privileges)
+          and specifies the "AssignedType" in field "assigned" for each
+          assigned privilege.
+        is: [ base.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Privileges" is returned unless fields are specified.
+                  Additionally the "AssignedType" is returned for each assigned
+                  privilege in field "assigned".
+      post:
+        description: |
+          Assigns the group to the included privileges. Existing privileges
+          assignments will be replaced.
+        is: [ base.version-matched ]
+        body:
+          application/json:
+            type: AssignedPrivileges
+        responses:
+          200:
+            description: Group has been assigned to the privileges.
+      /{privilegeId}:
+        uriParameters:
+          privilegeId:
+            type: base.Id
+        get:
+          description: |
+            Returns the assigned privilege with the specified privilegeId.
+          responses:
+            200:
+              body:
+                application/json:
+                  type: AssignedPrivilege
+            404:
+              description: |
+                Privilege with the specified privilegeId has not been assigned.
+              body:
+                application/json:
+        post:
+          description: Assigns the privilege to the group.
+          is: [ base.version-matched ]
+          body:
+            application/json:
+              type: object
+              properties:
+                assigned:
+                  type: AssignedType
+                  default: GRANTED
+                  required: false
+          responses:
+            201:
+              body:
+                application/json:
+                  type: AssignedPrivilege
+            409:
+              description: The privilege has been assigned already.
+        patch:
+          description: Updates the assigned privilege of the group.
+          is: [ base.version-matched ]
+          body:
+            application/merge-patch+json:
+              type: object
+              properties:
+                assigned:
+                  type: AssignedType
+          responses:
+            200:
+              body:
+                application/json:
+                  type: AssignedPrivilege
+            404:
+              description: |
+                Privilege with the specified privilegeId has not been assigned.
+              body:
+                application/json:
+        delete:
+          description: |
+            Removes the assigned privilege with the specified privilegeId.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: |
+                The assigned privilege with the specified privilegeId has been
+                removed.
+            404:
+              description: |
+                Privilege with the specified privilegeId has not been assigned.
+              body:
+                application/json:

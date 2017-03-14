@@ -1,0 +1,158 @@
+#%RAML 1.0
+---
+title: four for business AG API CMS REST API for delivery.
+version: v1
+protocols: [ HTTP, HTTPS ]
+baseUri: https://127.0.0.1/{version}
+uses:
+  commons: fourforbusiness-commons-base.raml
+  base: fourforbusiness-apicms-base.raml
+documentation:
+  - title: Getting Started
+    content: |
+      Most likely we include a meaningful document later :-)
+  - title: Basics of Authentication
+    content: |
+      Describe the way to auth
+  - title: Generic reponse codes
+    content: |
+      List generic response codes
+
+mediaType: application/json
+
+/sites/{siteId}:
+  uriParameters:
+    siteId:
+      type: base.CmsId
+  type: commons.collection
+  /contents:
+    get:
+      description: |
+        Retrieves the available contents. Additional filtering can be added
+        by specifying the field names prefixed by "fields.".
+      is: [ commons.fielded, commons.queried, commons.sorted, commons.paged, base.metadata-filtered, base.cms-sorted ]
+      queryParameters:
+        typeId:
+          required: false
+          type: base.CmsId
+          description: |
+            the content type for which the contents should be returned.
+        locale:
+          required: false
+          type: base.Locale
+          description: |
+            Returns the content in the specified locale. The specified
+            locale must be an available locale of the content. If this locale
+            is not specified the content is returned in the default locale of
+            the site (if content is available in default locale of site).
+        defaultLocale:
+          required: false
+          type: base.Locale
+          description: filters for the default locale of the content.
+        /^fields\.[a-zA-Z0-9\-_]+$/:
+          required: false
+          type: string
+          description: |
+            Filters for content type specific fields. This can only be used
+            when the there is a filter on the content type.
+      responses:
+        200:
+          body:
+            application/json:
+              description: |
+                Type "Content" is returned unless fields are specified or
+                query parameter "overview" has been set to true.
+    /{contentId}:
+      uriParameters:
+        contentId:
+          type: base.CmsId
+      get:
+        description: Retrieves the content.
+        is: [ commons.fielded ]
+        queryParameters:
+          locale:
+            required: false
+            type: base.Locale
+            description: |
+              Returns the content in the specified locale. The specified
+              locale must be an available locale of the content. If this locale
+              is not specified, the content is returned in the default locale of
+              the site.
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Content" is returned unless fields are specified.
+          404:
+            description: |
+              Content could not be found or content is not available in specified
+              locale.
+            body:
+              application/json:
+  /assets:
+    type: commons.collection
+    get:
+      description: |
+        Retrieves the available assets. Additional filtering can be added
+        by specifying the field names prefixed by "fields.".
+      is: [ commons.fielded, commons.queried, commons.sorted, commons.paged, base.metadata-filtered, base.cms-sorted ]
+      queryParameters:
+        typeId:
+          required: false
+          type: base.CmsId
+          description: |
+            the asset type for which the assets should be returned.
+        locale:
+          required: false
+          type: base.Locale
+          description: |
+            Returns the asset in the specified locale. The specified
+            locale must be an available locale of the asset. If this locale
+            is not specified the asset is returned in the default locale of
+            the site (if asset is available in default locale of site).
+        defaultLocale:
+          required: false
+          type: base.Locale
+          description: filters for the default locale of the asset.
+        contentType:
+          required: false
+          type: base.ContentType
+          description: |
+            The asset type (media type without parameters) for which the
+            assets should be returned.
+      responses:
+        200:
+          body:
+            application/json:
+              description: |
+                Type "Asset" is returned unless fields are specified or
+                query parameter "overview" has been set to true.
+    /{assetId}:
+      uriParameters:
+        assetId:
+          type: base.CmsId
+      get:
+        description: Retrieves the asset.
+        is: [ commons.fielded ]
+        queryParameters:
+          locale:
+            required: false
+            type: base.Locale
+            description: |
+              Returns the asset in the specified locale. The specified
+              locale must be an available locale of the asset. If this locale
+              is not specified, the asset is returned in the default locale of
+              the site.
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Asset" is returned unless fields are specified.
+          404:
+            description: |
+              Asset could not be found or asset is not available in specified
+              locale.
+            body:
+              application/json:

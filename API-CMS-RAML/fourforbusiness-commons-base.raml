@@ -1,0 +1,173 @@
+#%RAML 1.0 Library
+---
+usage: |
+  Annotations, base types, resource types and traits of
+  four for business commons.
+
+annotationTypes:
+  sortable:
+    type: nil
+    description: Marks a property to be sortable.
+    allowedTargets: TypeDeclaration
+
+types:
+  NotFound:
+    type: object
+    description: |
+      The body of a 404 response in order to distinguish between server error
+      and an item with a non-existing ID.
+    properties:
+      message: string
+  ErrorField:
+    type: object
+    description: The validation error of a field.
+    properties:
+      field:
+        type: string
+        description: |
+          The name of the field that caused the validation error or null if
+          the field is the root object.
+        required: false
+      type:
+        enum: [FIELD, PATH_PARAM, BODY, OTHER]
+      messages:
+        type: string[]
+  ErrorFields:
+    type: ErrorField[]
+  Error:
+    type: object
+    description: The body of a 4xx and 5xx responses.
+    properties:
+      reference:
+        type: string
+        description: |
+          The reference of the error in order to be able to map the error to a
+          log file entry.
+        required: false
+      type:
+        enum: [BUSINESS, TECHNICAL]
+        description: |
+          The type of error that has occured.
+        required: false
+      code:
+        type: string
+        description: A defined error code for the error.
+        required: false
+      message:
+        type: string
+        description: Description of the error.
+      fields:
+        type: ErrorFields
+        description: |
+          Optional validation error messages for fields.
+        required: false
+  Id:
+    type: integer
+    format: int64
+  Ids:
+    type: Id[]
+    uniqueItems: true
+  Version:
+    description: Data type of the version of the data.
+    type: integer
+    format: int64
+
+resourceTypes:
+  collection:
+    usage: This resourceType should be used for any collection of items.
+    get:
+      responses:
+        200:
+          headers:
+            X-Total-Count:
+              description: |
+                Delivers the total amount of data for a specific request. This
+                number is only included when the boolean request parameter
+                "includeTotalCount" has been set to "true". The value does not
+                consider paging but shows the overall number and not the number
+                per paged response. If the total count cannot be determined -1
+                is returned.
+              type: integer
+              format: int64
+              required: false
+              example: 2
+            X-Limit-Count:
+              description: |
+                Delivers the applied limit of returned items for a specific
+                request. Even if no limit has been specified in the request,
+                the server may apply its own limit.
+              type: integer
+              format: int64
+              required: false
+              example: 500
+
+traits:
+  fielded:
+    description: |
+      Specifies the fields that should be returned. If no field is specified
+      all fields are returned.
+    queryParameters:
+      fields:
+        required: false
+        pattern: "([a-z][a-zA-Z0-9]*,)*[a-z][a-zA-Z0-9]*"
+        example: forname,surname
+  queried:
+    description: |
+      Specifies a single query value that results in filtering the returned
+      items on multiple properties. These properties are merely names.
+    queryParameters:
+      q:
+        required: false
+        type: string
+        example: Pete
+  sorted:
+    description: |
+      Specifies the sort order of the retrieved items. The property must be
+      marked with the "sortable" annotation.
+    queryParameters:
+      sort:
+        required: false
+        pattern: "((\\+|\\-)?[a-z][a-zA-Z0-9]*,)*(\\+|\\-)?[a-z][a-zA-Z0-9]*"
+        example: forename,+surname,-name
+  paged:
+    description: Specifies the amount of items that will be retrieved per page.
+    queryParameters:
+      limit:
+        required: false
+        type: integer
+        format: int32
+        minimum: 1
+        default: 2147483647
+        example: 30
+      offset:
+        required: false
+        type: integer
+        format: int64
+        default: 0
+        example: 10
+      includeTotalCount:
+        required: false
+        type: boolean
+        default: false
+        example: true
+  version-matched:
+    description: |
+      Specifies the required version number when a resource entity is updated
+      or deleted or a dependent resource entity is assigned. If the current
+      version of the resource entity does not match the specified version, an
+      error 412 (precondition failed) is returned.
+    headers:
+      If-Match-Version:
+        description: |
+          Specified the version number.
+        type: integer
+        format: int64
+        required: false
+        example: 47
+    responses:
+      412:
+        description: |
+          The specified version number does not match
+        body:
+          application/json:
+            type: Error

@@ -1,0 +1,593 @@
+#%RAML 1.0
+---
+title: four for business AG API CMS REST API for authoring.
+version: v1
+protocols: [ HTTPS ]
+baseUri: https://127.0.0.1/{version}
+uses:
+    commons: fourforbusiness-commons-base.raml
+    base: fourforbusiness-apicms-base.raml
+securedBy: [oauth_2_0]
+securitySchemes:
+  oauth_2_0:
+    type: OAuth 2.0
+    describedBy:
+      headers:
+        Authorization:
+          description: |
+            Used to send a valid OAuth 2 access token. Do not use together with
+            the "access_token" query string parameter.
+      queryParameters:
+        access_token:
+          description: |
+            Used to send a valid OAuth 2 access token. Do not use together with
+            the "Authorization" header.
+    settings:
+      accessTokenUri: https://127.0.0.1/oauth/token
+      authorizationGrants: [ password ]
+documentation:
+  - title: Getting Started
+    content: |
+      Most likely we include a meaningful document later :-)
+  - title: Basics of Authentication
+    content: |
+      Describe the way to auth
+  - title: Generic reponse codes
+    content: |
+      List generic response codes
+
+mediaType: application/json
+
+types:
+  Site:
+    type: object
+    properties:
+      metadata:
+        type: base.Metadata
+        required: false
+        description: |
+          Metadata is only returned and must not be specified as input.
+      name:
+        type: base.Text
+      description:
+        type: base.DescriptionText
+        required: false
+      defaultLocale:
+        type: base.Locale
+        description: |
+          The default locale of the site. It is used when no locale has
+          been specified and the requested operation requires a valid
+          locale. It is not mandatory that content of the site supports the
+          default locale.
+  SiteLocale:
+    type: object
+    properties:
+      locale:
+        type: base.Locale
+        required: false
+        description:
+          The locale. It cannot be changed after assignment to a site.
+      fallbackLocale:
+        type: base.Locale
+        required: false
+        description: |
+          The fallback locale if there is no content for this site locale. The
+          fallback locale must be a valid locale of the site.
+  FieldType:
+    enum: [TEXT, LONG_TEXT]
+  TypeField:
+    type: object
+    properties:
+      id:
+        type: base.CmsFieldId
+        description: |
+          Unique ID of field (unique within type).
+      name:
+        type: base.Text
+      fieldType:
+        type: FieldType
+        description: |
+          The type of the field. The type cannot be changed after creation.
+      localized:
+        type: boolean
+        default: false
+        required: false
+        description: |
+          Indicates if the field can be localized to the locales of the site.
+      required:
+        type: boolean
+        default: false
+        required: false
+        description: |
+          Indicates if the value of the field is required.
+      deliveryDisabled:
+        type: boolean
+        default: false
+        required: false
+        description:
+          Indicates if the value should not be included in responses on
+          delivery service.
+  TypeFields:
+    type: TypeField[]
+    uniqueItems: true
+  Type:
+    type: object
+    properties:
+      metadata:
+        type: base.Metadata
+        required: false
+        description: |
+          Metadata is only returned and must not be specified as input.
+      name:
+        type: base.Text
+      description:
+        type: base.DescriptionText
+        required: false
+      titleFieldId:
+        type: base.CmsFieldId
+        required: true
+        description: |
+          The ID of the field that contains the content title. Only text fields
+          can be used as content title fields.
+      fields:
+        type: TypeFields
+
+/sites:
+  displayName: Authoring Services
+  type: commons.collection
+  get:
+    description: Retrieves the available sites.
+    is: [ commons.fielded, commons.queried, commons.sorted, commons.paged, base.metadata-filtered, base.cms-sorted ]
+    responses:
+      200:
+        body:
+          application/json:
+            description: |
+              Type "Site" is returned unless fields are specified.
+  post:
+    description: Creates a new site. The ID will be created automatically.
+    body:
+      application/json:
+        type: Site
+    responses:
+      201:
+        description: |
+          Site has been created. The generated ID will be returned in the
+          metadata.
+        body:
+          application/json:
+            type: Site
+  /{siteId}:
+    uriParameters:
+      siteId:
+        type: base.CmsId
+    get:
+      description: Retrieves the site.
+      is: [ commons.fielded ]
+      responses:
+        200:
+          body:
+            application/json:
+              description: Type "Site" is returned unless fields are specified.
+        404:
+          description: Site could not be found.
+          body:
+            application/json:
+    post:
+      description: Creates a new site.
+      body:
+        application/json:
+          type: Site
+      responses:
+        201:
+          description: Site has been created.
+          body:
+            application/json:
+              type: Site
+    patch:
+      description: Updates the site.
+      is: [ base.version-matched ]
+      body:
+        application/merge-patch+json:
+          description: Object with specific fields of type "Site".
+      responses:
+        200:
+          description: Site has been updated.
+          body:
+            application/json:
+              type: Site
+        404:
+          description: Site could not be found.
+          body:
+            application/json:
+    delete:
+      description: Deletes the site.
+      is: [ base.version-matched ]
+      responses:
+        204:
+          description: Site has been deleted.
+        404:
+          description: Site could not be found.
+          body:
+            application/json:
+    /locales:
+      description: |
+        The locales of the site. The locales of the site belong to the site.
+        When creating, updating and deleting a locale of a site, the version
+        of the site must be specified for optimistic locking.
+      type: commons.collection
+      get:
+        description: Retrieves the available locales of the site.
+        is: [ commons.fielded ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "SiteLocale" is returned unless fields are specified.
+      /{locale}:
+        uriParameters:
+          locale:
+            type: base.Locale
+        get:
+          description: Retrieves the locale.
+          is: [ commons.fielded ]
+          responses:
+            200:
+              body:
+                application/json:
+                  description: Type "Locale" is returned unless fields are specified.
+            404:
+              description: Locale could not be found.
+              body:
+                application/json:
+        post:
+          description: Assigns the locale to the site.
+          is: [ base.version-matched ]
+          body:
+            application/json:
+              type: base.Locale
+          responses:
+            201:
+              description: |
+                The locale has been assigned to the site.
+              body:
+                application/json:
+                  type: SiteLocale
+        patch:
+          description: Updates the locale on the site.
+          is: [ base.version-matched ]
+          body:
+            application/merge-patch+json:
+              description: Object with specific fields of type "Locale".
+          responses:
+            200:
+              description: Locale has been updated.
+              body:
+                application/json:
+                  type: base.Locale
+            404:
+              description: Locale could not be found.
+              body:
+                application/json:
+        delete:
+          description: Deletes the locale.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: Locale has been deleted.
+            404:
+              description: Locale could not be found.
+              body:
+                application/json:
+    /types:
+      type: commons.collection
+      get:
+        description: Retrieves the available types.
+        is: [ commons.fielded, commons.queried, commons.sorted, commons.paged, base.metadata-filtered, base.cms-sorted ]
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Type" is returned unless fields are specified.
+      post:
+        description: Creates a new type. The ID will be created automatically.
+        body:
+          application/json:
+            type: Type
+        responses:
+          201:
+            description: |
+              Type has been created. The generated ID will be returned in the
+              metadata.
+            body:
+              application/json:
+                type: Type
+      /{typeId}:
+        uriParameters:
+          typeId:
+            type: base.CmsId
+        get:
+          description: Retrieves the type.
+          is: [ commons.fielded ]
+          responses:
+            200:
+              body:
+                application/json:
+                  description: Type "Type" is returned unless fields are specified.
+            404:
+              description: Type could not be found.
+              body:
+                application/json:
+        post:
+          description: Creates a new type.
+          body:
+            application/json:
+              type: Type
+          responses:
+            200:
+              description: Type has been created.
+              body:
+                application/json:
+                  type: Type
+        patch:
+          description: Updates the type.
+          is: [ base.version-matched ]
+          body:
+            application/merge-patch+json:
+              description: Object with specific fields of type "Type".
+          responses:
+            200:
+              description: Type has been updated.
+              body:
+                application/json:
+                  type: Type
+            404:
+              description: Type could not be found.
+              body:
+                application/json:
+        delete:
+          description: Deletes the type.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: Type has been deleted.
+            404:
+              description: Type could not be found.
+              body:
+                application/json:
+    /contents:
+      type: commons.collection
+      get:
+        description: |
+          Retrieves the available contents. Additional filtering can be added
+          by specifying the field names prefixed by "fields.".
+        is: [ commons.fielded, commons.queried, commons.sorted, commons.paged, base.metadata-filtered, base.cms-sorted ]
+        queryParameters:
+          typeId:
+            required: false
+            type: base.CmsId
+            description: |
+              the content type for which the contents should be returned.
+          locale:
+            required: false
+            type: base.Locale
+            description: |
+              Returns the content in the specified locale. The specified
+              locale must be an available locale of the content. If this locale
+              is not specified the content is returned with all of its
+              available locales.
+          overview:
+            required: false
+            type: boolean
+            default: false
+            description: |
+              Requests the content overview. The content overview does not
+              contain the fields of the contents. The content overview
+              should be used if an overview should be displayed immediately
+              after posting or patching the content. Without setting this
+              setting there may be a delay in the availability of the updated
+              data. Whith this parameter set to true filtering and sorting on
+              fields of a content type is not supported.
+          defaultLocale:
+            required: false
+            type: base.Locale
+            description: filters for the default locale of the content.
+          /^fields\.[a-zA-Z0-9\-_]+$/:
+            required: false
+            type: string
+            description: |
+              Filters for content type specific fields. This can only be used
+              when the there is a filter on the content type.
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Content" is returned unless fields are specified or
+                  query parameter "overview" has been set to true.
+      post:
+        description: |
+          Creates a new content. The generated ID is returned in the metadata
+          of the new content.
+        body:
+          application/json:
+            type: base.Content
+        responses:
+          201:
+            description: Content has been created.
+            body:
+              application/json:
+                type: base.Content
+      /{contentId}:
+        uriParameters:
+          contentId:
+            type: base.CmsId
+        get:
+          description: Retrieves the content.
+          is: [ commons.fielded ]
+          queryParameters:
+            locale:
+              required: false
+              type: base.Locale
+              description: |
+                Returns the content in the specified locale. The specified
+                locale must be an available locale of the content. If this
+                locale is not specified, the content is returned for all
+                locales in which the content is available.
+          responses:
+            200:
+              body:
+                application/json:
+                  description: Type "Content" is returned unless fields are specified.
+            404:
+              description: Content could not be found.
+              body:
+                application/json:
+        patch:
+          description: Updates the content.
+          is: [ base.version-matched ]
+          body:
+            application/merge-patch+json:
+              description: Object with specific fields of type "Content".
+          responses:
+            200:
+              description: Content has been updated.
+              body:
+                application/json:
+                  type: base.Content
+            404:
+              description: Content could not be found.
+              body:
+                application/json:
+        delete:
+          description: Deletes the content.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: Content has been deleted.
+            404:
+              description: Content could not be found.
+              body:
+                application/json:
+    /assets:
+      type: commons.collection
+      get:
+        description: |
+          Retrieves the available assets.
+        is: [ commons.fielded, commons.queried, commons.sorted, commons.paged, base.metadata-filtered, base.cms-sorted ]
+        queryParameters:
+          locale:
+            required: false
+            type: base.Locale
+            description: |
+              Returns the content in the specified locale. The specified
+              locale must be an available locale of the content. If this locale
+              is not specified the content is returned with all of its
+              available locales.
+          overview:
+            required: false
+            type: boolean
+            default: false
+            description: |
+              Requests the content overview. The content overview does not
+              contain the fields of the contents. The content overview
+              should be used if an overview should be displayed immediately
+              after posting or patching the content. Without setting this
+              setting there may be a delay in the availability of the updated
+              data. Whith this parameter set to true filtering and sorting on
+              fields of a content type is not supported.
+          defaultLocale:
+            required: false
+            type: base.Locale
+            description: filters for the default locale of the content.
+          contentType:
+            required: false
+            type: base.ContentType
+            description: |
+              The content type (media type without parameters) for which the
+              contents should be returned.
+        responses:
+          200:
+            body:
+              application/json:
+                description: |
+                  Type "Asset" is returned unless fields are specified or
+                  query parameter "overview" has been set to true.
+      post:
+        description: |
+          Creates a new asset. The generated ID is returned in the metadata
+          of the new asset. The data of type "Asset" must be included as part
+          "asset" with content type "application/json". If the asset contains
+          a non-localized file, the file must be included as part "file". If
+          the asset contains localized files, the files must be included as
+          part "file." where the part name contains as suffix the locale (e.g.
+          "file.en-US" for American English).
+        body:
+          multipart/form-data:
+        responses:
+          201:
+            description: Asset has been created.
+            body:
+              application/json:
+                type: base.Asset
+      /{assetId}:
+        uriParameters:
+          assetId:
+            type: base.CmsId
+        get:
+          description: Retrieves the asset.
+          is: [ commons.fielded ]
+          queryParameters:
+            locale:
+              required: false
+              type: base.Locale
+              description: |
+                Returns the asset in the specified locale. The specified
+                locale must be an available locale of the asset. If this
+                locale is not specified, the asset is returned for all
+                locales in which the asset is available.
+          responses:
+            200:
+              body:
+                application/json:
+                  description: |
+                    Type "Asset" is returned unless fields are specified.
+            404:
+              description: Asset could not be found.
+              body:
+                application/json:
+        patch:
+          description: |
+            Updates the asset. The data of type "Asset" must be included as
+            part "asset" with content type "application/merge-patch+json".
+            If the asset contains a non-localized file that should be added
+            or updated, the file must be included as part "file". If the
+            asset contains localized files hat should be added or updated,
+            the files must be included as part "file." where the part name
+            contains as suffix the locale (e.g. "file.en-US" for American
+            English).
+          is: [ base.version-matched ]
+          body:
+            multipart/form-data:
+          responses:
+            200:
+              description: Asset has been updated.
+              body:
+                application/json:
+                  type: base.Asset
+            404:
+              description: Asset could not be found.
+              body:
+                application/json:
+        delete:
+          description: Deletes the asset.
+          is: [ base.version-matched ]
+          responses:
+            204:
+              description: Asset has been deleted.
+            404:
+              description: Asset could not be found.
+              body:
+                application/json:
